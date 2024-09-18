@@ -2,7 +2,6 @@ package zinc.doiche.discord.listener
 
 import dev.minn.jda.ktx.events.CoroutineEventListener
 import dev.minn.jda.ktx.events.listener
-import dev.minn.jda.ktx.util.SLF4J
 import net.dv8tion.jda.api.JDA
 import net.dv8tion.jda.api.events.message.MessageReceivedEvent
 import org.slf4j.Logger

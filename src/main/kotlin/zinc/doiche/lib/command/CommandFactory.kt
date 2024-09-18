@@ -6,14 +6,23 @@ import kotlinx.coroutines.coroutineScope
 import net.dv8tion.jda.api.JDA
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent
 import net.dv8tion.jda.api.interactions.commands.build.CommandData
+import org.slf4j.Logger
 import zinc.doiche.lib.init.annotation.Listener
 
 private val commands = HashMap<String, Command>()
 
 @Listener
-fun onCommand(jda: JDA) = jda.listener<SlashCommandInteractionEvent> { event ->
-    if(event.name in commands) {
-        commands[event.name]?.onCommand(event)
+fun onCommand(
+    jda: JDA,
+    logger: Logger
+) = jda.listener<SlashCommandInteractionEvent> { event ->
+    if(!event.user.isBot) {
+        val commandName = event.name
+
+        logger.info("[Command] /$commandName Called by ${event.user.name}")
+        if(commandName in commands) {
+            commands[commandName]?.onCommand(event)
+        }
     }
 }
 

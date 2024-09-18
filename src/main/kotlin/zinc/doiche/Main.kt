@@ -9,7 +9,9 @@ import dev.minn.jda.ktx.events.CoroutineEventManager
 import dev.minn.jda.ktx.jdabuilder.intents
 import dev.minn.jda.ktx.jdabuilder.light
 import kotlinx.coroutines.runBlocking
+import net.dv8tion.jda.api.JDA
 import net.dv8tion.jda.api.JDABuilder
+import net.dv8tion.jda.api.Permission
 import net.dv8tion.jda.api.hooks.AnnotatedEventManager
 import net.dv8tion.jda.api.requests.GatewayIntent
 import okhttp3.OkHttpClient
@@ -21,32 +23,24 @@ import java.time.Duration
 
 internal lateinit var applicationContext: ApplicationContext
 
-fun main(): Unit {
+fun main() {
     val config = readConfig()
 
-    applicationContext = ApplicationContext(config)
-    applicationContext.apply {
-        jda = light(
-            config.discordToken,
-            true
-        ) {
-            setEventManager(CoroutineEventManager())
-            setHttpClientBuilder(
-                OkHttpClient.Builder()
-                    .callTimeout(Duration.ofMinutes(1))
-                    .connectTimeout(Duration.ofMinutes(1))
-                    .readTimeout(Duration.ofMinutes(1))
-                    .writeTimeout(Duration.ofMinutes(1))
-            )
-            intents += listOf(
-                GatewayIntent.MESSAGE_CONTENT,
-                GatewayIntent.GUILD_MESSAGES,
-                GatewayIntent.DIRECT_MESSAGES
-            )
-        }
+    applicationContext = ApplicationContext(config) {
+        setEventManager(CoroutineEventManager())
+        setHttpClientBuilder(
+            OkHttpClient.Builder()
+                .callTimeout(Duration.ofMinutes(1))
+                .connectTimeout(Duration.ofMinutes(1))
+                .readTimeout(Duration.ofMinutes(1))
+                .writeTimeout(Duration.ofMinutes(1))
+        )
+        intents += listOf(
+            GatewayIntent.MESSAGE_CONTENT,
+            GatewayIntent.GUILD_MESSAGES,
+            GatewayIntent.DIRECT_MESSAGES
+        )
     }
-    applicationContext.postInit()
-    applicationContext.registerCommands()
 }
 
 fun readConfig(): Config {

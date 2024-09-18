@@ -34,7 +34,6 @@ dependencies {
     implementation("com.fasterxml.jackson.core:jackson-databind:2.17.2")
     implementation("com.fasterxml.jackson.module:jackson-module-kotlin:2.17.2")
     implementation("com.fasterxml.jackson.dataformat:jackson-dataformat-yaml:2.17.2")
-//    compileOnly("com.google.code.gson:gson:2.10.1")
     implementation("net.oneandone.reflections8:reflections8:0.11.7")
     implementation("net.dv8tion:JDA:5.1.0")
     implementation("club.minnced:jda-ktx:0.12.0")

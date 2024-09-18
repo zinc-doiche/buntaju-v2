@@ -1,7 +1,9 @@
 package zinc.doiche.lib.init
 
 import com.mongodb.kotlin.client.coroutine.MongoClient
+import dev.minn.jda.ktx.jdabuilder.light
 import net.dv8tion.jda.api.JDA
+import net.dv8tion.jda.api.JDABuilder
 import org.reflections8.Reflections
 import org.reflections8.scanners.MethodAnnotationsScanner
 import org.reflections8.scanners.SubTypesScanner
@@ -15,18 +17,20 @@ import zinc.doiche.lib.command.Command
 import zinc.doiche.lib.command.CommandFactory
 import zinc.doiche.lib.init.annotation.Injectable
 import zinc.doiche.lib.init.annotation.Injector
+import zinc.doiche.lib.init.annotation.Listener
 import zinc.doiche.lib.init.annotation.SlashCommand
 
 class ApplicationContext(
-    val config: Config
+    val config: Config,
+    private val jdaBuilderConsumer: JDABuilder.() -> Unit
 ) {
-    var jda: JDA? = null
-        set(value) {
-            if(field != null) {
-                throw IllegalStateException("JDA is already initialized.")
-            }
-            field = value
-        }
+    val jda: JDA by lazy {
+        light(
+            token = config.discordToken,
+            enableCoroutines = true,
+            builder = jdaBuilderConsumer
+        )
+    }
 
     val mongoClient: MongoClient by lazy {
         MongoClient.create(config.database.getConnectionString())
@@ -69,12 +73,26 @@ class ApplicationContext(
         }
     }
 
-    fun postInit() {
-        injectableMap["JDA"] = jda!!
+    init {
+        injectableMap["JDA"] = jda
         injectableMap["Logger"] = logger
+
+        registerListeners()
+        jda.awaitStatus(JDA.Status.CONNECTED)
+        registerCommands()
     }
 
-    fun registerCommands() {
+    private fun registerListeners() = reflections.getMethodsAnnotatedWith(Listener::class.java).map { function ->
+        function.parameters.map { parameter ->
+            val simpleName = parameter.type.simpleName
+            injectableMap[simpleName] ?: throw IllegalStateException("No Injectable found for $simpleName")
+        }.let {
+            logger.info("[Listener] ${function.name} has been registered.")
+            function.invoke(null, *it.toTypedArray())
+        }
+    }
+
+    private fun registerCommands() {
         reflections.getMethodsAnnotatedWith(SlashCommand::class.java)
             .forEach { function ->
                 if(function.returnType != Command::class.java) {
@@ -86,7 +104,7 @@ class ApplicationContext(
                 }.let {
                     function.invoke(null, *it.toTypedArray()) as? Command
                 }?.let {
-                    CommandFactory.register(jda!!, it)
+                    CommandFactory.register(jda, it)
                     logger.info("[Command] '/${it.name}' has been registered.")
                 } ?: throw IllegalStateException("No Command found for ${function.name}")
             }

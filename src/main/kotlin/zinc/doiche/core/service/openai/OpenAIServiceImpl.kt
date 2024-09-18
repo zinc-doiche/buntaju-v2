@@ -1,3 +1,11 @@
 package zinc.doiche.core.service.openai
 
-class OpenAIServiceImpl : OpenAIService
+import zinc.doiche.core.domain.BuntaMessage
+import zinc.doiche.core.domain.openai.OpenAIResponse
+
+class OpenAIServiceImpl : OpenAIService {
+
+    override suspend fun requestMessageContext(messageList: List<BuntaMessage>): OpenAIResponse {
+        TODO("Not yet implemented")
+    }
+}
