@@ -29,5 +29,5 @@ fun onChat(
     val message = it.message.contentRaw
     val user = it.author
 
-    textChannel.sendMessage("준비 중입니다. 기다려").mention(user).queue()
+    textChannel.sendMessage("준비 중입니다. 기다려").queue()
 }
