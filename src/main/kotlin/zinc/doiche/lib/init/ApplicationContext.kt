@@ -1,21 +1,25 @@
 package zinc.doiche.lib.init
 
-import com.fasterxml.jackson.databind.ObjectMapper
-import com.fasterxml.jackson.dataformat.yaml.YAMLMapper
-import com.fasterxml.jackson.module.kotlin.readValue
 import com.mongodb.kotlin.client.coroutine.MongoClient
-import kotlinx.coroutines.CoroutineScope
 import net.dv8tion.jda.api.JDA
-import org.reflections.Reflections
+import org.reflections8.Reflections
+import org.reflections8.scanners.MethodAnnotationsScanner
+import org.reflections8.scanners.SubTypesScanner
+import org.reflections8.scanners.TypeAnnotationsScanner
+import org.reflections8.util.ClasspathHelper
+import org.reflections8.util.ConfigurationBuilder
+import org.reflections8.util.FilterBuilder
+import org.slf4j.Logger
+import org.slf4j.LoggerFactory
+import zinc.doiche.lib.command.Command
+import zinc.doiche.lib.command.CommandFactory
 import zinc.doiche.lib.init.annotation.Injectable
 import zinc.doiche.lib.init.annotation.Injector
-import zinc.doiche.lib.init.annotation.Listener
-import java.io.File
+import zinc.doiche.lib.init.annotation.SlashCommand
 
 class ApplicationContext(
-    val mainScope: CoroutineScope
+    val config: Config
 ) {
-
     var jda: JDA? = null
         set(value) {
             if(field != null) {
@@ -24,55 +28,67 @@ class ApplicationContext(
             field = value
         }
 
-    val config: Config = YAMLMapper().let { mapper ->
-        val filePath = "config.yaml"
-        val contextClassLoader = Thread.currentThread().contextClassLoader
-        val file = File(filePath).apply {
-            if(!exists()) {
-                createNewFile()
-                contextClassLoader.getResource(filePath)?.let {
-                    val objectMapper = ObjectMapper()
-                    val default = objectMapper.readValue<Config>(File(it.path))
-                    objectMapper.writeValue(this, default)
-                }
-            }
-        }
-
-        mapper.readValue(file, Config::class.java)
-    }
-
     val mongoClient: MongoClient by lazy {
         MongoClient.create(config.database.getConnectionString())
     }
 
-    val listenerList: List<Any>
-        get() {
-            val injectableMap = mutableMapOf<String, Any>()
-            val reflections = Reflections()
+    val reflections: Reflections by lazyOf(
+        Reflections(
+            ConfigurationBuilder()
+                .setUrls(ClasspathHelper.forPackage("zinc.doiche"))
+                .setScanners(
+                    SubTypesScanner(),
+                    TypeAnnotationsScanner(),
+                    MethodAnnotationsScanner()
+                )
+                .filterInputsBy(
+                    FilterBuilder().includePackage("zinc.doiche")
+                )
+        )
+    )
 
+    val logger: Logger by lazy {
+        LoggerFactory.getLogger(javaClass)
+    }
+
+    private val injectableMap: MutableMap<String, Any> by lazy {
+        mutableMapOf<String, Any>().apply {
             reflections.getTypesAnnotatedWith(Injectable::class.java).map { clazz ->
                 clazz.declaredMethods.filter { method ->
                     method.isAnnotationPresent(Injector::class.java)
                 }.forEach { method ->
                     clazz.getDeclaredConstructor().newInstance().let { injectable ->
-                        injectableMap[method.returnType.simpleName] = method.invoke(injectable)
+                        this[method.returnType.simpleName] = if(method.parameters.isNotEmpty()) {
+                            method.invoke(injectable, this@ApplicationContext)
+                        } else {
+                            method.invoke(injectable)
+                        }
                     }
                 }
             }
-
-            return reflections.getTypesAnnotatedWith(Listener::class.java).map { clazz ->
-                clazz.declaredConstructors.firstOrNull()?.let { constructor ->
-                    constructor.parameters.map { parameter ->
-                        val simpleName = parameter.type.simpleName
-                        injectableMap[simpleName] ?: throw IllegalStateException("No Injectable found for $simpleName")
-                    }.let {
-                        constructor.newInstance(*it.toTypedArray())
-                    }
-                } ?: throw IllegalStateException("No constructor found for ${clazz.simpleName}")
-            }
         }
+    }
 
-    fun launch(coroutineBlock: CoroutineScope.() -> Unit) {
-        mainScope.coroutineBlock()
+    fun postInit() {
+        injectableMap["JDA"] = jda!!
+        injectableMap["Logger"] = logger
+    }
+
+    fun registerCommands() {
+        reflections.getMethodsAnnotatedWith(SlashCommand::class.java)
+            .forEach { function ->
+                if(function.returnType != Command::class.java) {
+                    throw IllegalStateException("Return type of ${function.name} must be Command.")
+                }
+                function.parameters.map { parameter ->
+                    val simpleName = parameter.type.simpleName
+                    injectableMap[simpleName] ?: throw IllegalStateException("No Injectable found for $simpleName")
+                }.let {
+                    function.invoke(null, *it.toTypedArray()) as? Command
+                }?.let {
+                    CommandFactory.register(jda!!, it)
+                    logger.info("[Command] '/${it.name}' has been registered.")
+                } ?: throw IllegalStateException("No Command found for ${function.name}")
+            }
     }
 }

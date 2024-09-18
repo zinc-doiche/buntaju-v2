@@ -1,6 +1,5 @@
 package zinc.doiche.lib
 
-import zinc.doiche.zinc.doiche.applicationContext
 import zinc.doiche.core.collector.BuntaCollector
 import zinc.doiche.core.collector.BuntaMessageCollector
 import zinc.doiche.core.collector.BuntaUserCollector
@@ -8,6 +7,7 @@ import zinc.doiche.core.service.openai.OpenAIService
 import zinc.doiche.core.service.openai.OpenAIServiceImpl
 import zinc.doiche.core.service.bunta.BuntaService
 import zinc.doiche.core.service.bunta.BuntaServiceImpl
+import zinc.doiche.lib.init.ApplicationContext
 import zinc.doiche.lib.init.annotation.Injectable
 import zinc.doiche.lib.init.annotation.Injector
 
@@ -20,7 +20,7 @@ class ServiceInjections {
     }
 
     @Injector
-    fun getBuntaService(): BuntaService {
+    fun getBuntaService(applicationContext: ApplicationContext): BuntaService {
         val mongoDatabase = applicationContext.mongoClient.getDatabase(applicationContext.config.database.getName())
 
         return BuntaServiceImpl(
