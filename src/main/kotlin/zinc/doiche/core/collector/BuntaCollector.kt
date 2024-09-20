@@ -4,7 +4,7 @@ import com.mongodb.client.result.DeleteResult
 import com.mongodb.client.result.UpdateResult
 import com.mongodb.kotlin.client.coroutine.MongoDatabase
 import kotlinx.coroutines.flow.firstOrNull
-import zinc.doiche.core.domain.Bunta
+import zinc.doiche.core.domain.bunta.Bunta
 import zinc.doiche.lib.database.CRUDCollector
 import zinc.doiche.lib.util.eq
 import zinc.doiche.lib.util.toDocument

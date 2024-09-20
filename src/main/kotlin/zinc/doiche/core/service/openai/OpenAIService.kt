@@ -1,9 +1,14 @@
 package zinc.doiche.core.service.openai
 
-import zinc.doiche.core.domain.BuntaMessage
-import zinc.doiche.core.domain.openai.OpenAIResponse
+import okhttp3.RequestBody
+import retrofit2.http.HeaderMap
+import retrofit2.http.POST
 
 interface OpenAIService {
 
-    suspend fun requestMessageContext(messageList: List<BuntaMessage>): OpenAIResponse
+    @POST("v1/chat/completions")
+    suspend fun requestMessageContext(
+        body: RequestBody,
+        @HeaderMap headerMap: Map<String, String>
+    ): Map<String, Any>
 }

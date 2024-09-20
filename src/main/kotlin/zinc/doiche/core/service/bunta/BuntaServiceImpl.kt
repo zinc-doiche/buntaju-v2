@@ -5,9 +5,9 @@ import org.bson.types.ObjectId
 import zinc.doiche.core.collector.BuntaCollector
 import zinc.doiche.core.collector.BuntaMessageCollector
 import zinc.doiche.core.collector.BuntaUserCollector
-import zinc.doiche.core.domain.Bunta
-import zinc.doiche.core.domain.BuntaMessage
-import zinc.doiche.core.domain.BuntaUser
+import zinc.doiche.core.domain.bunta.Bunta
+import zinc.doiche.core.domain.bunta.BuntaMessage
+import zinc.doiche.core.domain.bunta.BuntaUser
 import zinc.doiche.lib.util.toObject
 
 class BuntaServiceImpl(

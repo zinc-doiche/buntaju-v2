@@ -19,3 +19,9 @@ fun Any.toDocument(): Document {
 fun Document.toSet(): Document {
     return Document("\$set", this)
 }
+
+fun Any.toJson(): String = objectMapper.writeValueAsString(this)
+
+fun Any.toPrettyJson(): String = objectMapper
+    .writerWithDefaultPrettyPrinter()
+    .writeValueAsString(this)

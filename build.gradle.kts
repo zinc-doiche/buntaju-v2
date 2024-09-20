@@ -38,6 +38,9 @@ dependencies {
     implementation("net.dv8tion:JDA:5.1.0")
     implementation("club.minnced:jda-ktx:0.12.0")
     implementation("ch.qos.logback:logback-classic:1.5.6")
+    implementation("com.github.ben-manes.caffeine:caffeine:3.1.8")
+    implementation("com.squareup.retrofit2:retrofit:2.11.0")
+    implementation("com.squareup.retrofit2:converter-jackson:2.11.0")
 }
 
 configurations.implementation.configure {

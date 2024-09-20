@@ -1,4 +1,4 @@
-package zinc.doiche.core.domain
+package zinc.doiche.core.domain.bunta
 
 import com.fasterxml.jackson.annotation.JsonProperty
 import org.bson.codecs.pojo.annotations.BsonId

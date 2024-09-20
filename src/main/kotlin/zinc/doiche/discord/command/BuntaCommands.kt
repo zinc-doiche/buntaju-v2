@@ -3,7 +3,7 @@ package zinc.doiche.discord.command
 import net.dv8tion.jda.api.entities.channel.concrete.TextChannel
 import net.dv8tion.jda.api.interactions.commands.build.Commands
 import org.bson.types.ObjectId
-import zinc.doiche.core.domain.Bunta
+import zinc.doiche.core.domain.bunta.Bunta
 import zinc.doiche.core.service.bunta.BuntaService
 import zinc.doiche.lib.command.CommandFactory
 import zinc.doiche.lib.init.annotation.SlashCommand

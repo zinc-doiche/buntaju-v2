@@ -7,7 +7,7 @@ import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.toList
 import org.bson.types.ObjectId
-import zinc.doiche.core.domain.BuntaMessage
+import zinc.doiche.core.domain.bunta.BuntaMessage
 import zinc.doiche.lib.database.CRUDCollector
 import zinc.doiche.lib.util.eq
 import zinc.doiche.lib.util.toDocument
