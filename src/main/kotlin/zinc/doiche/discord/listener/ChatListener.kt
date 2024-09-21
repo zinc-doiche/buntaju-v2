@@ -4,78 +4,80 @@ import dev.minn.jda.ktx.events.CoroutineEventListener
 import dev.minn.jda.ktx.events.listener
 import net.dv8tion.jda.api.JDA
 import net.dv8tion.jda.api.events.message.MessageReceivedEvent
-import okhttp3.MediaType
-import okhttp3.MediaType.Companion.toMediaType
-import okhttp3.MediaType.Companion.toMediaTypeOrNull
-import okhttp3.RequestBody
-import okhttp3.RequestBody.Companion.toRequestBody
 import org.bson.types.ObjectId
 import org.slf4j.Logger
 import zinc.doiche.core.domain.bunta.BuntaMessage
 import zinc.doiche.core.domain.bunta.BuntaUser
+import zinc.doiche.core.`object`.MessageUnion
+import zinc.doiche.core.`object`.UserUnion
+import zinc.doiche.core.`object`.openai.OpenAIRequest
 import zinc.doiche.core.service.bunta.BuntaService
 import zinc.doiche.core.service.openai.OpenAIService
-import zinc.doiche.lib.init.Config
 import zinc.doiche.lib.init.annotation.Listener
-import zinc.doiche.lib.util.toPrettyJson
+
+internal var isLocked = false
 
 @Listener
 fun onChat(
     jda: JDA,
-    config: Config,
     buntaService: BuntaService,
     openAIService: OpenAIService,
     logger: Logger
-): CoroutineEventListener = jda.listener<MessageReceivedEvent> {
-    val channelUnion = it.channel
+): CoroutineEventListener = jda.listener<MessageReceivedEvent> { event ->
+    val channelUnion = event.channel
 
-    if(it.author.isBot || !channelUnion.type.isMessage) {
+    if(isLocked || event.author.isBot || !channelUnion.type.isMessage) {
         return@listener
     }
+    isLocked = true
 
-    logger.info(it.message.contentRaw)
-
-    val textChannel = channelUnion.asTextChannel()
-    val bunta = buntaService.getBunta(textChannel.idLong) ?: return@listener
-    val user = it.author
-    val buntaUser = buntaService.getBuntaUser(user.idLong) ?: run {
-        BuntaUser(ObjectId(), user.idLong).apply {
-            buntaService.saveBuntaUser(this)
-        }
-    }
-    val message = it.message
-
-    BuntaMessage(
-        ObjectId(),
-        bunta.objectId,
-        buntaUser.objectId,
-        message.idLong,
-        content = message.contentRaw
-    ).apply {
-        buntaService.saveBuntaMessage(this)
-    }
-
-    openAIService.requestMessageContext(
-        """
-            {
-                "model": "gpt-4o-mini",
-                "messages": [
-                    {
-                        "role": "system",
-                        "content": "input 형식은 '사용자: 내용' n/ output 형식은 '내용'"
-                    },
-                    {
-                        "role": "user",
-                        "content": "${user.name}: ${message.contentRaw}"
-                    }
-                ]
+    runCatching lock@ {
+        val textChannel = channelUnion.asTextChannel()
+        val user = event.author
+        val message = event.message
+        val bunta = buntaService.getBunta(textChannel.idLong) ?: return@lock
+        val buntaUser = buntaService.getBuntaUser(user.idLong) ?: run {
+            BuntaUser(ObjectId(), user.idLong).apply {
+                buntaService.saveBuntaUser(this)
             }
-        """.trimIndent().toRequestBody("application/json".toMediaType()),
-        mapOf(
-            "Content-Type" to "application/json",
-            "Authorization" to "Bearer ${config.aiToken}"
+        }
+        val messageList = run {
+            buntaService.getBuntaMessageListOfBunta(bunta, 9).map {
+                buntaService.getBuntaUser(it.senderObjectId)?.let { findUser ->
+                    jda.getUserById(findUser.userId)?.let { discordUser ->
+                        UserUnion(discordUser, findUser)
+                    }
+                }?.let { userUnion ->
+                    MessageUnion(it, userUnion)
+                } ?: run {
+                    textChannel.sendMessage("메시지를 불러오는 중 오류가 발생했습니다.").queue()
+                    logger.error("BuntaMessage: {}", it)
+                    isLocked = false
+                    return@lock
+                }
+            }
+        }
+        val newMessage = BuntaMessage(
+            ObjectId(),
+            bunta.objectId,
+            buntaUser.objectId,
+            message.idLong,
+            content = message.contentRaw
         )
-    ).toPrettyJson().let { json ->
-        logger.info(json)
+
+        openAIService.getAIResponseMessage(
+            OpenAIRequest(
+                MessageUnion(newMessage, UserUnion(user, buntaUser)),
+                messageList
+            )
+        )?.let { responseMessage ->
+            buntaService.saveBuntaMessage(newMessage)
+            buntaService.saveBuntaMessage(responseMessage)
+            textChannel.sendMessage(responseMessage.content).queue()
+        }
+    }.onFailure {
+        logger.error("Error: ", it)
+        isLocked = false
     }
+    isLocked = false
 }

@@ -64,6 +64,9 @@ class ApplicationContext(
             val methodList = mutableListOf<Triple<Int, Method, Any>>()
 
             this["ApplicationContext"] = this@ApplicationContext
+            this["Config"] = config
+            this["JDA"] = jda
+            this["Logger"] = logger
 
             reflections.getTypesAnnotatedWith(Injectable::class.java).map { clazz ->
                 clazz.declaredMethods.filter { method ->
@@ -80,7 +83,7 @@ class ApplicationContext(
                 }
             }
 
-            methodList.sortBy { - it.first }
+            methodList.sortBy { it.first }
             methodList.forEach {
                 val method = it.second
                 val key = method.getAnnotation(Injector::class.java).name.takeIf { name ->
@@ -88,7 +91,7 @@ class ApplicationContext(
                 } ?: method.returnType.simpleName
                 val injectable = it.third
                 val parameters = method.parameters.map { param ->
-                    getInjectable(param)
+                    getInjectable(this, param)
                 }.toTypedArray()
 
                 this[key] = method.invoke(injectable, *parameters)
@@ -97,10 +100,6 @@ class ApplicationContext(
     }
 
     init {
-        injectableMap["JDA"] = jda
-        injectableMap["Logger"] = logger
-        injectableMap["Config"] = config
-
         registerListeners()
         jda.awaitStatus(JDA.Status.CONNECTED)
         registerCommands()
@@ -110,7 +109,7 @@ class ApplicationContext(
 
     private fun registerListeners() = reflections.getMethodsAnnotatedWith(Listener::class.java).map { function ->
         function.parameters.map { parameter ->
-            getInjectable(parameter)
+            getInjectable(injectableMap, parameter)
         }.let {
             logger.info("[Listener] ${function.name} has been registered.")
             function.invoke(null, *it.toTypedArray())
@@ -124,7 +123,7 @@ class ApplicationContext(
                     throw IllegalStateException("Return type of ${function.name} must be Command.")
                 }
                 function.parameters.map { parameter ->
-                    getInjectable(parameter)
+                    getInjectable(injectableMap, parameter)
                 }.let {
                     function.invoke(null, *it.toTypedArray()) as? Command
                 }?.let {
@@ -135,9 +134,8 @@ class ApplicationContext(
     }
 
     @Throws(IllegalStateException::class)
-    private fun getInjectable(parameter: Parameter): Any {
+    private fun getInjectable(map: Map<String, Any>, parameter: Parameter): Any {
         val name = parameter.getAnnotation(Inject::class.java)?.name ?: parameter.type.simpleName
-        return injectableMap[name]
-            ?: throw IllegalStateException("No Injectable found for $name [${parameter.type}].")
+        return map[name] ?: throw IllegalStateException("No Injectable found for $name [${parameter.type}].")
     }
 }

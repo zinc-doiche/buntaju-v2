@@ -16,6 +16,7 @@ import net.dv8tion.jda.api.hooks.AnnotatedEventManager
 import net.dv8tion.jda.api.requests.GatewayIntent
 import okhttp3.OkHttpClient
 import org.yaml.snakeyaml.Yaml
+import zinc.doiche.core.domain.bunta.BuntaUser
 import zinc.doiche.lib.init.ApplicationContext
 import zinc.doiche.lib.init.Config
 import java.io.File

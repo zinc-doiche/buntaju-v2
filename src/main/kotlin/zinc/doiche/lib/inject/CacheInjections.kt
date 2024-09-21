@@ -2,6 +2,7 @@ package zinc.doiche.lib.inject
 
 import com.github.benmanes.caffeine.cache.Cache
 import com.github.benmanes.caffeine.cache.Caffeine
+import org.bson.types.ObjectId
 import zinc.doiche.core.domain.bunta.Bunta
 import zinc.doiche.core.domain.bunta.BuntaMessage
 import zinc.doiche.core.domain.bunta.BuntaUser
@@ -14,21 +15,21 @@ import kotlin.time.toJavaDuration
 class CacheInjections {
 
     @Injector("buntaCache")
-    fun buntaCache(): Cache<Long, Bunta> = Caffeine
+    fun buntaCache(): Cache<ObjectId, Bunta> = Caffeine
         .newBuilder()
         .expireAfterWrite(100.seconds.toJavaDuration())
         .maximumSize(100)
         .build()
 
     @Injector("buntaUserCache")
-    fun buntaUserCache(): Cache<Long, BuntaUser> = Caffeine
+    fun buntaUserCache(): Cache<ObjectId, BuntaUser> = Caffeine
         .newBuilder()
         .expireAfterWrite(100.seconds.toJavaDuration())
         .maximumSize(100)
         .build()
 
     @Injector("buntaMessageCache")
-    fun buntaMessageCache(): Cache<Long, BuntaMessage> = Caffeine
+    fun buntaMessageCache(): Cache<ObjectId, BuntaMessage> = Caffeine
         .newBuilder()
         .expireAfterWrite(100.seconds.toJavaDuration())
         .maximumSize(100)

@@ -16,7 +16,7 @@ annotation class InjectionOrder(
     val value: Int = 0
 )
 
-@Target(AnnotationTarget.FIELD)
+@Target(AnnotationTarget.FIELD, AnnotationTarget.VALUE_PARAMETER)
 @Retention(AnnotationRetention.RUNTIME)
 annotation class Inject(
     val name: String
