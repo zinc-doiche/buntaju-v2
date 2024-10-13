@@ -5,18 +5,16 @@ import com.mongodb.client.result.DeleteResult
 import com.mongodb.client.result.InsertOneResult
 import com.mongodb.client.result.UpdateResult
 import kotlinx.coroutines.flow.firstOrNull
-import org.bson.Document
 import org.bson.types.ObjectId
-import zinc.doiche.lib.util.toDocument
 
-interface CRUDCollector<ID, T: Any> : MongoCollector {
+interface CRUDCollector<ID, T : Any> : MongoCollector<T> {
 
     suspend fun insertOne(t: T): InsertOneResult {
-        return collection.insertOne(t.toDocument())
+        return getCollection().insertOne(t)
     }
 
-    suspend fun findOne(objectId: ObjectId): Document? {
-        return collection.find(Filters.eq("_id", objectId)).firstOrNull();
+    suspend fun findOne(objectId: ObjectId): T? {
+        return getCollection().find(Filters.eq("_id", objectId)).firstOrNull();
     }
 
     suspend fun findOneById(id: ID): T?

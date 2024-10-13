@@ -19,13 +19,15 @@ import org.yaml.snakeyaml.Yaml
 import zinc.doiche.core.domain.bunta.BuntaUser
 import zinc.doiche.lib.init.ApplicationContext
 import zinc.doiche.lib.init.Config
+import zinc.doiche.lib.util.ObjectIdModule
 import java.io.File
 import java.time.Duration
 
 internal lateinit var applicationContext: ApplicationContext
 
 fun main() {
-    val config = readConfig()
+    val objectMapper = ObjectMapper(YAMLFactory()).registerKotlinModule()
+    val config = readConfig(objectMapper)
 
     applicationContext = ApplicationContext(config) {
         setEventManager(CoroutineEventManager())
@@ -44,8 +46,7 @@ fun main() {
     }
 }
 
-fun readConfig(): Config {
-    val objectMapper = ObjectMapper(YAMLFactory()).registerKotlinModule()
+fun readConfig(objectMapper: ObjectMapper): Config {
     val filePath = "config.yaml"
     val contextClassLoader = Thread.currentThread().contextClassLoader
     val file = File(filePath).apply {

@@ -2,14 +2,19 @@ package zinc.doiche.core.service.bunta
 
 import com.github.benmanes.caffeine.cache.Cache
 import com.mongodb.client.result.InsertOneResult
+import com.mongodb.client.result.UpdateResult
+import kotlinx.coroutines.future.await
+import net.dv8tion.jda.api.JDA
 import org.bson.types.ObjectId
+import org.slf4j.Logger
 import zinc.doiche.core.collector.BuntaCollector
 import zinc.doiche.core.collector.BuntaMessageCollector
 import zinc.doiche.core.collector.BuntaUserCollector
 import zinc.doiche.core.domain.bunta.Bunta
 import zinc.doiche.core.domain.bunta.BuntaMessage
 import zinc.doiche.core.domain.bunta.BuntaUser
-import zinc.doiche.lib.util.toObject
+import zinc.doiche.core.`object`.MessageUnion
+import zinc.doiche.core.`object`.UserUnion
 
 class BuntaServiceImpl(
     private val buntaCollector: BuntaCollector,
@@ -18,6 +23,8 @@ class BuntaServiceImpl(
     private val buntaCache: Cache<ObjectId, Bunta>,
     private val buntaUserCache: Cache<ObjectId, BuntaUser>,
     private val buntaMessageCache: Cache<ObjectId, BuntaMessage>,
+    private val jda: JDA,
+    private val logger: Logger
 ) : BuntaService {
     override suspend fun getBunta(channelId: Long): Bunta? {
         return buntaCollector.findOneById(channelId)
@@ -25,7 +32,7 @@ class BuntaServiceImpl(
 
     override suspend fun getBunta(objectId: ObjectId): Bunta? {
         return buntaCache.getIfPresent(objectId) ?: run {
-            buntaCollector.findOne(objectId)?.toObject(Bunta::class.java)?.apply {
+            buntaCollector.findOne(objectId)?.apply {
                 buntaCache.put(objectId, this)
             }
         }
@@ -37,7 +44,7 @@ class BuntaServiceImpl(
 
     override suspend fun getBuntaUser(objectId: ObjectId): BuntaUser? {
         return buntaUserCache.getIfPresent(objectId) ?: run {
-            buntaUserCollector.findOne(objectId)?.toObject(BuntaUser::class.java)?.apply {
+            buntaUserCollector.findOne(objectId)?.apply {
                 buntaUserCache.put(objectId, this)
             }
         }
@@ -49,14 +56,32 @@ class BuntaServiceImpl(
 
     override suspend fun getBuntaMessage(objectId: ObjectId): BuntaMessage? {
         return buntaMessageCache.getIfPresent(objectId) ?: run {
-            buntaMessageCollector.findOne(objectId)?.toObject(BuntaMessage::class.java)?.apply {
+            buntaMessageCollector.findOne(objectId)?.apply {
                 buntaMessageCache.put(objectId, this)
             }
         }
     }
 
-    override suspend fun getBuntaMessageListOfBunta(bunta: Bunta, limit: Int): List<BuntaMessage> {
-        return buntaMessageCollector.findMany(bunta.objectId, limit)
+    override suspend fun getMessageUnionListOfBunta(bunta: Bunta, limit: Int): List<MessageUnion> {
+        return buntaMessageCollector.findMany(bunta.objectId!!, limit).map { buntaMessage ->
+            getBuntaUser(buntaMessage.senderObjectId)?.let { findUser ->
+                val textChannel = jda.getTextChannelById(bunta.channelId) ?: return emptyList()
+                val message = textChannel.retrieveMessageById(buntaMessage.messageId).submit().await()
+
+                jda.retrieveUserById(findUser.userId).map { discordUser ->
+                    MessageUnion(buntaMessage, message, UserUnion(discordUser, findUser))
+                }.onErrorMap {
+                    logger.warn("Failed to retrieve user: ", it)
+                    null
+                }.submit().await()
+            } ?: return emptyList()
+        }
+    }
+
+    override suspend fun updateBunta(bunta: Bunta): UpdateResult {
+        val updateOne = buntaCollector.updateOne(bunta)
+        buntaCache.put(bunta.objectId, bunta)
+        return updateOne
     }
 
     override suspend fun saveBunta(bunta: Bunta): InsertOneResult {

@@ -1,10 +1,12 @@
 package zinc.doiche.core.service.bunta
 
 import com.mongodb.client.result.InsertOneResult
+import com.mongodb.client.result.UpdateResult
 import org.bson.types.ObjectId
 import zinc.doiche.core.domain.bunta.Bunta
 import zinc.doiche.core.domain.bunta.BuntaMessage
 import zinc.doiche.core.domain.bunta.BuntaUser
+import zinc.doiche.core.`object`.MessageUnion
 
 interface BuntaService {
 
@@ -20,7 +22,9 @@ interface BuntaService {
 
     suspend fun getBuntaMessage(objectId: ObjectId): BuntaMessage?
 
-    suspend fun getBuntaMessageListOfBunta(bunta: Bunta, limit: Int): List<BuntaMessage>
+    suspend fun getMessageUnionListOfBunta(bunta: Bunta, limit: Int): List<MessageUnion>?
+
+    suspend fun updateBunta(bunta: Bunta): UpdateResult
 
     suspend fun saveBunta(bunta: Bunta): InsertOneResult
 

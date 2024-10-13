@@ -10,6 +10,9 @@ annotation class Injector(
     val name: String = "",
 )
 
+/**
+ * 0 -> 1 -> 2 -> 3 -> 4 -> ...
+ */
 @Target(AnnotationTarget.FUNCTION)
 @Retention(AnnotationRetention.RUNTIME)
 annotation class InjectionOrder(

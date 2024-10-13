@@ -7,6 +7,7 @@ plugins {
     val kotlinVersion = "2.0.10"
 
     kotlin("jvm") version kotlinVersion
+    kotlin("plugin.serialization") version kotlinVersion
     id("org.hidetake.ssh") version "2.11.2"
     id("com.github.johnrengelman.shadow") version "8.1.1"
 }
@@ -29,8 +30,9 @@ repositories {
 }
 
 dependencies {
-    implementation("org.mongodb:mongodb-driver-kotlin-coroutine:5.1.4")
-    implementation("org.mongodb:bson-kotlinx:5.1.4")
+    implementation("org.mongodb:mongodb-driver-kotlin-coroutine:5.2.0")
+    implementation("org.jetbrains.kotlinx:kotlinx-serialization-core:1.5.1")
+    implementation("org.mongodb:bson-kotlinx:5.2.0")
     implementation("com.fasterxml.jackson.core:jackson-databind:2.17.2")
     implementation("com.fasterxml.jackson.module:jackson-module-kotlin:2.17.2")
     implementation("com.fasterxml.jackson.dataformat:jackson-dataformat-yaml:2.17.2")

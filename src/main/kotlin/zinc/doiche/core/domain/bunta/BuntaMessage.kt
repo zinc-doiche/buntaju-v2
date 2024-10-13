@@ -1,15 +1,34 @@
 package zinc.doiche.core.domain.bunta
 
-import com.fasterxml.jackson.annotation.JsonProperty
-import org.bson.codecs.pojo.annotations.BsonId
+import kotlinx.serialization.Contextual
+import kotlinx.serialization.SerialName
+import kotlinx.serialization.Serializable
+import net.dv8tion.jda.api.entities.Message
 import org.bson.types.ObjectId
 
+@Serializable
 data class BuntaMessage(
-    @BsonId
-    @JsonProperty("_id")
-    val objectId: ObjectId,
+    @SerialName("_id")
+    @Contextual
+    val objectId: ObjectId?,
+
+    @Contextual
     val channelObjectId: ObjectId,
+
+    @Contextual
     val senderObjectId: ObjectId,
     val messageId: Long,
     val content: String,
-)
+) {
+    constructor(bunta: Bunta, buntaUser: BuntaUser, message: Message) : this(
+        ObjectId.get(),
+        bunta.objectId!!,
+        buntaUser.objectId,
+        message.idLong,
+        message.contentRaw
+    )
+
+    override fun toString(): String {
+        return "BuntaMessage(objectId=$objectId, channelObjectId=$channelObjectId, senderObjectId=$senderObjectId, messageId=$messageId, content='$content')"
+    }
+}

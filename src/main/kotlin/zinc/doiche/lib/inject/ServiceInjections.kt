@@ -2,6 +2,7 @@ package zinc.doiche.lib.inject
 
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.github.benmanes.caffeine.cache.Cache
+import net.dv8tion.jda.api.JDA
 import org.bson.types.ObjectId
 import org.slf4j.Logger
 import retrofit2.Retrofit
@@ -38,8 +39,9 @@ class ServiceInjections {
         config: Config,
         objectMapper: ObjectMapper,
         openAIRequester: OpenAIRequester,
+        buntaUserCollector: BuntaUserCollector
     ): OpenAIService {
-        return OpenAIServiceImpl(logger, config, objectMapper, openAIRequester)
+        return OpenAIServiceImpl(logger, config, objectMapper, openAIRequester, buntaUserCollector)
     }
 
     @Injector
@@ -50,7 +52,9 @@ class ServiceInjections {
         buntaMessageCollector: BuntaMessageCollector,
         @Inject("buntaCache") buntaCache: Cache<ObjectId, Bunta>,
         @Inject("buntaUserCache") buntaUserCache: Cache<ObjectId, BuntaUser>,
-        @Inject("buntaMessageCache") buntaMessageCache: Cache<ObjectId, BuntaMessage>
+        @Inject("buntaMessageCache") buntaMessageCache: Cache<ObjectId, BuntaMessage>,
+        jda: JDA,
+        logger: Logger
     ): BuntaService {
         return BuntaServiceImpl(
             buntaCollector,
@@ -58,7 +62,9 @@ class ServiceInjections {
             buntaMessageCollector,
             buntaCache,
             buntaUserCache,
-            buntaMessageCache
+            buntaMessageCache,
+            jda,
+            logger
         )
     }
 }

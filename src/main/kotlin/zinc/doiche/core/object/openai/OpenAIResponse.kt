@@ -18,7 +18,7 @@ class Choice(
     val index: Int,
     val message: Message,
     val logprobs: Any?,
-    val finishReason: String
+    val finishReason: String?
 ) {
     override fun toString(): String {
         return "Choice(index=$index, message=$message, logprobs=$logprobs, finishReason='$finishReason')"
@@ -39,10 +39,19 @@ class Usage(
     val promptTokens: Int,
     val completionTokens: Int,
     val totalTokens: Int,
-    val completionTokensDetails: CompletionTokensDetails
+    val promptTokensDetails: PromptTokensDetails?,
+    val completionTokensDetails: CompletionTokensDetails?
 ) {
     override fun toString(): String {
-        return "Usage(promptTokens=$promptTokens, completionTokens=$completionTokens, totalTokens=$totalTokens, completionTokensDetails=$completionTokensDetails)"
+        return "Usage(promptTokens=$promptTokens, completionTokens=$completionTokens, totalTokens=$totalTokens, promptTokensDetails=$promptTokensDetails, completionTokensDetails=$completionTokensDetails)"
+    }
+}
+
+class PromptTokensDetails(
+    val cachedTokens: Int
+) {
+    override fun toString(): String {
+        return "PromptTokensDetails(cachedTokens=$cachedTokens)"
     }
 }
 

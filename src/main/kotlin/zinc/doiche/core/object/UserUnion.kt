@@ -8,13 +8,20 @@ class UserUnion(
     val discordUser: User,
     val buntaUser: BuntaUser
 ) {
+    val isAI: Boolean
+        get() = discordUser.isBot
+
     val name: String
-        get() = discordUser.name
+        get() = discordUser.globalName ?: discordUser.name
 
     val id: Long
         get() = discordUser.idLong
 
     val objectId: ObjectId
         get() = buntaUser.objectId
+
+    override fun toString(): String {
+        return "UserUnion(discordUser=$discordUser, buntaUser=$buntaUser)"
+    }
 
 }

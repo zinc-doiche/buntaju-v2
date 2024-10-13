@@ -1,5 +1,8 @@
 package zinc.doiche.lib.init
 
+import com.fasterxml.jackson.databind.ObjectMapper
+import com.fasterxml.jackson.dataformat.yaml.YAMLFactory
+import com.fasterxml.jackson.module.kotlin.registerKotlinModule
 import com.mongodb.kotlin.client.coroutine.MongoClient
 import dev.minn.jda.ktx.jdabuilder.light
 import net.dv8tion.jda.api.JDA
@@ -16,6 +19,7 @@ import org.slf4j.LoggerFactory
 import zinc.doiche.lib.command.Command
 import zinc.doiche.lib.command.CommandFactory
 import zinc.doiche.lib.init.annotation.*
+import zinc.doiche.lib.util.ObjectIdModule
 import java.lang.reflect.Method
 import java.lang.reflect.Parameter
 import kotlin.jvm.Throws
@@ -55,6 +59,12 @@ class ApplicationContext(
         }
     )
 
+    val objectMapper: ObjectMapper by lazy {
+        ObjectMapper(YAMLFactory())
+            .registerModule(ObjectIdModule())
+            .registerKotlinModule()
+    }
+
     val logger: Logger by lazy {
         LoggerFactory.getLogger(javaClass)
     }
@@ -67,6 +77,7 @@ class ApplicationContext(
             this["Config"] = config
             this["JDA"] = jda
             this["Logger"] = logger
+            this["ObjectMapper"] = objectMapper
 
             reflections.getTypesAnnotatedWith(Injectable::class.java).map { clazz ->
                 clazz.declaredMethods.filter { method ->
