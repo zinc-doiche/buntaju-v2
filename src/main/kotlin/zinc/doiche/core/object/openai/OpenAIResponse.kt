@@ -39,26 +39,27 @@ class Usage(
     val promptTokens: Int,
     val completionTokens: Int,
     val totalTokens: Int,
-    val promptTokensDetails: PromptTokensDetails?,
-    val completionTokensDetails: CompletionTokensDetails?
+    val promptTokensDetails: Any?,
+    val completionTokensDetails: Any?
 ) {
     override fun toString(): String {
         return "Usage(promptTokens=$promptTokens, completionTokens=$completionTokens, totalTokens=$totalTokens, promptTokensDetails=$promptTokensDetails, completionTokensDetails=$completionTokensDetails)"
     }
 }
 
-class PromptTokensDetails(
-    val cachedTokens: Int
-) {
-    override fun toString(): String {
-        return "PromptTokensDetails(cachedTokens=$cachedTokens)"
-    }
-}
-
-class CompletionTokensDetails(
-    val reasoningTokens: Int
-) {
-    override fun toString(): String {
-        return "CompletionTokensDetails(reasoningTokens=$reasoningTokens)"
-    }
-}
+//class PromptTokensDetails(
+//    val cachedTokens: Int,
+//    val audioTokens: Int
+//) {
+//    override fun toString(): String {
+//        return "PromptTokensDetails(cachedTokens=$cachedTokens)"
+//    }
+//}
+//
+//class CompletionTokensDetails(
+//    val reasoningTokens: Int
+//) {
+//    override fun toString(): String {
+//        return "CompletionTokensDetails(reasoningTokens=$reasoningTokens)"
+//    }
+//}

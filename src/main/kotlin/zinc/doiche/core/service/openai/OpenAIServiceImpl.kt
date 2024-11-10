@@ -23,7 +23,7 @@ class OpenAIServiceImpl(
     private val buntaUserCollector: BuntaUserCollector
 ) : OpenAIService {
 
-    override suspend fun getAIResponseMessage(bunta: Bunta, openAIRequest: OpenAIRequest): BuntaMessage? {
+    override suspend fun getAIResponseMessage(bunta: Bunta, openAIRequest: OpenAIRequest): Pair<BuntaMessage, String>? {
         val lastMessageUnion = openAIRequest.lastMessageUnion
         val requestString = openAIRequest.getRequestString(bunta)
 
@@ -48,7 +48,7 @@ class OpenAIServiceImpl(
                             aiUser.objectId,
                             lastMessageUnion.id,
                             choice.message.content
-                        )
+                        ) to json
                     }
                 }
             }

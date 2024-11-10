@@ -6,5 +6,5 @@ import zinc.doiche.core.`object`.openai.OpenAIRequest
 
 interface OpenAIService {
 
-    suspend fun getAIResponseMessage(bunta: Bunta, openAIRequest: OpenAIRequest): BuntaMessage?
+    suspend fun getAIResponseMessage(bunta: Bunta, openAIRequest: OpenAIRequest): Pair<BuntaMessage, String>?
 }

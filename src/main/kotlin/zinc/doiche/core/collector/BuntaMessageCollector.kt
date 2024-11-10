@@ -39,8 +39,8 @@ class BuntaMessageCollector(
         return getCollection().find(BuntaMessage::channelObjectId eq objectId)
             .sort(Sorts.descending("_id"))
             .limit(limit)
-            .sort(Sorts.ascending("_id"))
             .toList()
+            .asReversed()
     }
 
     override fun getCollection(): MongoCollection<BuntaMessage> {

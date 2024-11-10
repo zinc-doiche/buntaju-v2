@@ -63,7 +63,22 @@ class BuntaServiceImpl(
     }
 
     override suspend fun getMessageUnionListOfBunta(bunta: Bunta, limit: Int): List<MessageUnion> {
-        return buntaMessageCollector.findMany(bunta.objectId!!, limit).map { buntaMessage ->
+        val findMany = buntaMessageCollector.findMany(bunta.objectId!!, limit)
+        val skipSize = run {
+            var skip = 0
+            findMany.asReversed().forEachIndexed { index, message ->
+                skip += message.content.chars().count().toInt();
+                if(skip >= 2000) {
+                    return@run findMany.size - index + 1
+                }
+            }
+            0
+        }
+        return findMany.drop(
+            // 항상 user 먼저 시작해야 하므로
+            if(skipSize % 2 == 0) skipSize else skipSize + 1
+        )
+        .map { buntaMessage ->
             getBuntaUser(buntaMessage.senderObjectId)?.let { findUser ->
                 val textChannel = jda.getTextChannelById(bunta.channelId) ?: return emptyList()
                 val message = textChannel.retrieveMessageById(buntaMessage.messageId).submit().await()

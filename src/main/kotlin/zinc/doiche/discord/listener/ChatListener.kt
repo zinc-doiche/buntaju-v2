@@ -3,8 +3,10 @@ package zinc.doiche.discord.listener
 import dev.minn.jda.ktx.events.CoroutineEventListener
 import dev.minn.jda.ktx.events.listener
 import net.dv8tion.jda.api.JDA
+import net.dv8tion.jda.api.entities.Message
 import net.dv8tion.jda.api.entities.channel.concrete.TextChannel
 import net.dv8tion.jda.api.events.message.MessageReceivedEvent
+import net.dv8tion.jda.api.requests.RestAction
 import org.bson.types.ObjectId
 import org.slf4j.Logger
 import zinc.doiche.core.domain.bunta.BuntaMessage
@@ -14,11 +16,15 @@ import zinc.doiche.core.`object`.UserUnion
 import zinc.doiche.core.`object`.openai.OpenAIRequest
 import zinc.doiche.core.service.bunta.BuntaService
 import zinc.doiche.core.service.openai.OpenAIService
+import zinc.doiche.discord.command.debug
 import zinc.doiche.lib.init.annotation.Listener
+import kotlin.math.min
 
 internal var isLocked = false
 
-internal const val MAX_CHARACTER_SIZE: Long = 2000
+internal const val MAX_STRING_LENGTH: Int = 1000
+
+private lateinit var tempLogger: Logger
 
 @Listener
 fun onChat(
@@ -35,20 +41,13 @@ fun onChat(
     isLocked = true
 
     runCatching {
+        tempLogger = logger
         runWithLocking(event, buntaService, openAIService)
     }.onFailure {
         logger.error("Error: ", it)
         isLocked = false
     }
     isLocked = false
-}
-
-private fun TextChannel.sendMessageSequence(textIterator: Iterator<String>) {
-    if(textIterator.hasNext()) {
-        sendMessage(textIterator.next()).onSuccess {
-            sendMessageSequence(textIterator)
-        }.queue()
-    }
 }
 
 private suspend fun runWithLocking(
@@ -69,6 +68,10 @@ private suspend fun runWithLocking(
             buntaService.saveBuntaUser(this)
         }
     }
+
+    // 입력 제대로 들어갔는지 확인하기 용이함
+    textChannel.sendTyping().queue()
+
     val messageList = buntaService.getMessageUnionListOfBunta(bunta, 10) ?: run {
         textChannel.sendMessage("메시지를 불러오는 중 오류가 발생했습니다.").queue()
         isLocked = false
@@ -77,25 +80,66 @@ private suspend fun runWithLocking(
     val newMessage = BuntaMessage(bunta, buntaUser, message)
     val request = OpenAIRequest(MessageUnion(newMessage, message, UserUnion(user, buntaUser)), messageList)
 
-    openAIService.getAIResponseMessage(bunta, request)?.let { responseMessage ->
+    openAIService.getAIResponseMessage(bunta, request)?.let { responsePair ->
+        val responseMessage = responsePair.first
         val content = responseMessage.content
-        val count = content.chars().count()
 
         buntaService.saveBuntaMessage(newMessage)
         buntaService.saveBuntaMessage(responseMessage)
+        textChannel.sendMessageSequence(content).queue()
 
-        if(count < MAX_CHARACTER_SIZE) {
-            textChannel.sendMessage(content).queue()
-        } else {
-            val charArray = content.toCharArray()
-            val textList = mutableListOf<String>()
-
-            for (cutPoint in MAX_CHARACTER_SIZE ..< count step MAX_CHARACTER_SIZE) {
-                val text = charArray.sliceArray(cutPoint.toInt() ..< MAX_CHARACTER_SIZE.toInt()).toString()
-                textList.add(text)
-            }
-
-            textChannel.sendMessageSequence(textList.iterator())
+        if(debug) {
+            textChannel.sendMessageSequence(
+                "### Request:\n\n```${request.getRequestString(bunta)}\n\n```" +
+                "### Response:\n\n```${responsePair.second}\n\n```"
+            ).queue()
         }
-    } ?: textChannel.sendMessage("AI 응답을 받아오는 중 오류가 발생했습니다:\n```${request.getRequestString(bunta)}```").queue()
+
+    } ?: textChannel
+        .sendMessageSequence("AI 응답을 받아오는 중 오류가 발생했습니다:\n```${request.getRequestString(bunta)}```")
+        .queue()
+}
+
+private fun TextChannel.sendMessageSequence(text: String): RestAction<Message> {
+    val length = text.length
+
+    return if(length < MAX_STRING_LENGTH) {
+        sendMessage(text)
+    } else {
+        val textList = mutableListOf<String>()
+        var inCodeBlock = false;
+
+        for (cutPoint in 0 .. length step MAX_STRING_LENGTH) {
+            val slicedText = text.slice(cutPoint..< min(cutPoint + MAX_STRING_LENGTH, length))
+            val codeCount = slicedText.split("```").count()
+
+            if(codeCount % 2 != 0) {
+                if(inCodeBlock) "```$slicedText```" else slicedText
+            } else {
+                inCodeBlock = !inCodeBlock
+                if(!inCodeBlock) "```$slicedText" else "$slicedText```"
+            }.let {
+                textList.add(it)
+            }
+        }
+
+//        tempLogger.info(textList.joinToString(", "))
+        sendMessageSequence(textList.iterator())
+    }
+}
+
+private fun TextChannel.sendMessageSequence(
+    textIterator: Iterator<String>,
+    restAction: RestAction<Message>? = null
+): RestAction<Message> {
+    if(textIterator.hasNext()) {
+        val next = textIterator.next()
+
+        if(next.isNotEmpty()) {
+            return restAction?.onSuccess {
+                sendMessageSequence(textIterator, sendMessage(next)).queue()
+            } ?: sendMessageSequence(textIterator, sendMessage(next))
+        }
+    }
+    return restAction!!
 }

@@ -113,3 +113,21 @@ fun prompt(
     event.hook.sendMessage("분타가 사용하는 프롬프트는 다음과 같아요.\n\n```\n${bunta.prompt}\n```").queue()
 }
 
+internal var debug: Boolean = false
+
+@SlashCommand
+fun debugOnOff() = CommandFactory.command(
+    "디버그",
+    Commands.slash("디버그", "분타의 디버그 모드를 켜거나 끌 수 있어요.")
+        .addOptions(
+            OptionData(OptionType.BOOLEAN, "모드", "true일 시 로그 출력, false일 시 미출력", true),
+        )
+) { event ->
+    event.deferReply(true).queue()
+    debug = event.getOption("모드")?.asBoolean ?: run {
+        event.hook.sendMessage("모드를 입력해주세요.").queue()
+        return@command
+    }
+    event.hook.sendMessage("디버그 모드가 ${if(debug) "켜졌어요." else "꺼졌어요."}").queue()
+}
+
